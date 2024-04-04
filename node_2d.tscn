@@ -1,0 +1,76 @@
+[gd_scene load_steps=4 format=3 uid="uid://kspnqav2os4e"]
+
+[ext_resource type="Script" path="res://Car.gd" id="1_3rvk2"]
+[ext_resource type="Texture2D" uid="uid://dwk0yg12upqb1" path="res://mustang.png" id="1_fhtbh"]
+[ext_resource type="Script" path="res://Hud.gd" id="3_doene"]
+
+[node name="Root" type="Node2D"]
+position = Vector2(9, 9)
+
+[node name="Car" type="Node2D" parent="."]
+script = ExtResource("1_3rvk2")
+
+[node name="Sprite2D" type="Sprite2D" parent="Car"]
+position = Vector2(327, 597)
+scale = Vector2(0.265583, 0.265583)
+texture = ExtResource("1_fhtbh")
+
+[node name="Hud" type="Node2D" parent="."]
+script = ExtResource("3_doene")
+
+[node name="rpm_label" type="Label" parent="Hud"]
+offset_right = 207.0
+offset_bottom = 91.0
+theme_override_font_sizes/font_size = 66
+text = "RPM"
+
+[node name="value" type="Label" parent="Hud/rpm_label"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.748792
+anchor_right = 1.66667
+anchor_bottom = 1.0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
+theme_override_font_sizes/font_size = 66
+text = "0"
+metadata/_edit_use_anchors_ = true
+
+[node name="gear_label" type="Label" parent="Hud"]
+offset_top = 91.0
+offset_right = 207.0
+offset_bottom = 182.0
+theme_override_font_sizes/font_size = 66
+text = "#"
+
+[node name="value" type="Label" parent="Hud/gear_label"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.2657
+anchor_right = 1.18357
+anchor_bottom = 1.0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
+theme_override_font_sizes/font_size = 66
+text = "0"
+metadata/_edit_use_anchors_ = true
+
+[node name="speed_label" type="Label" parent="Hud"]
+offset_left = 1088.0
+offset_top = 8.0
+offset_right = 1295.0
+offset_bottom = 99.0
+theme_override_font_sizes/font_size = 66
+text = "Km/h"
+
+[node name="value" type="Label" parent="Hud/speed_label"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_left = -249.0
+offset_right = -13.0
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
+theme_override_font_sizes/font_size = 66
+text = "0"
+horizontal_alignment = 2
