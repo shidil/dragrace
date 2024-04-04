@@ -15,6 +15,8 @@ position = Vector2(327, 597)
 scale = Vector2(0.265583, 0.265583)
 texture = ExtResource("1_fhtbh")
 
+[node name="ShiftTimer" type="Timer" parent="Car"]
+
 [node name="Hud" type="Node2D" parent="."]
 script = ExtResource("3_doene")
 
@@ -74,3 +76,5 @@ theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
 theme_override_font_sizes/font_size = 66
 text = "0"
 horizontal_alignment = 2
+
+[connection signal="timeout" from="Car/ShiftTimer" to="Car" method="_on_shift_timer_timeout"]
