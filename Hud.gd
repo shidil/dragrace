@@ -3,7 +3,7 @@ extends Node2D
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	var car = get_node("../Car")
+	var car = get_node("../Player")
 	car.connect("metric_update", _on_car_update)
 
 
