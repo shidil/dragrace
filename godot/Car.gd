@@ -1,7 +1,7 @@
 extends Node2D
 
 var Car = load("res://CarPhysics.gd")
-var car = Car.new()
+var car
 
 # 2023 mustang GT TORSEN
 @export var idle_rpm = 800
@@ -22,7 +22,8 @@ var car_state: CarState
 var gearbox_state: GearBox
 
 func reset():
-	car = Car.new()
+	car = Car.new(gear_ratios, final_drive, weight, tyre)
+	car.start()
 	position.x = 0
 	
 # Called when the node enters the scene tree for the first time.

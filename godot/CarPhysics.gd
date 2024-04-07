@@ -23,15 +23,21 @@ var car_state: CarState
 var gearbox_state: GearBox
 
 # Constructor
-func _init():
+func _init(gears, fd: float, weight: int, tyre: Vector3):
+	idle_rpm = 800
+	gear_ratios = gears
+	final_drive = fd
+	curb_weight = weight
+	wheel_radi = calc_wheel_radi(tyre.x, tyre.y, tyre.z)
+
+func start():
 	rpm = idle_rpm
 	speed = 0
 	acceleration = 0
 	power = 0
 	gear = 1
-	throttle = 1
-	#engine_health = 100
-	car_state = CarState.MOVING
+	throttle = 0
+	car_state = CarState.IDLE
 	gearbox_state = GearBox.SHIFT_COMPLETE
 
 # 'delta' is the elapsed time since the previous frame.

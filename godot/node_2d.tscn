@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://kspnqav2os4e"]
+[gd_scene load_steps=4 format=3 uid="uid://kspnqav2os4e"]
 
 [ext_resource type="PackedScene" uid="uid://dh5lx2ocp83rm" path="res://Car.tscn" id="1_6em0n"]
 [ext_resource type="Script" path="res://Hud.gd" id="3_doene"]
+[ext_resource type="Texture2D" uid="uid://cd57bfgwuo34w" path="res://icon.svg" id="3_fec3m"]
 
 [node name="Root" type="Node2D"]
 position = Vector2(9, 9)
@@ -67,3 +68,6 @@ theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
 theme_override_font_sizes/font_size = 66
 text = "0"
 horizontal_alignment = 2
+
+[node name="Player2" type="Player" parent="."]
+texture = ExtResource("3_fec3m")
