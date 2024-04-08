@@ -3,9 +3,9 @@ extends Node2D
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	var car = get_node("../Player")
-	car.connect("metric_update", _on_car_update)
-
+	#var car = get_node("../Player")
+	#car.connect("metric_update", _on_car_update)
+	pass
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):

@@ -1,16 +1,11 @@
-[gd_scene load_steps=3 format=3 uid="uid://dh5lx2ocp83rm"]
+[gd_scene load_steps=2 format=3 uid="uid://dh5lx2ocp83rm"]
 
-[ext_resource type="Script" path="res://Car.gd" id="1_lkwna"]
 [ext_resource type="Texture2D" uid="uid://dwk0yg12upqb1" path="res://mustang.png" id="2_gjixl"]
 
-[node name="Car" type="Node2D"]
-script = ExtResource("1_lkwna")
+[node name="Car" type="Player"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(327, 597)
 scale = Vector2(0.265583, 0.265583)
 texture = ExtResource("2_gjixl")
 
 [node name="ShiftTimer" type="Timer" parent="."]
-
-[connection signal="timeout" from="ShiftTimer" to="." method="_on_shift_timer_timeout"]

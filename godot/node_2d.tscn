@@ -1,13 +1,19 @@
-[gd_scene load_steps=4 format=3 uid="uid://kspnqav2os4e"]
+[gd_scene load_steps=3 format=3 uid="uid://kspnqav2os4e"]
 
 [ext_resource type="PackedScene" uid="uid://dh5lx2ocp83rm" path="res://Car.tscn" id="1_6em0n"]
 [ext_resource type="Script" path="res://Hud.gd" id="3_doene"]
-[ext_resource type="Texture2D" uid="uid://cd57bfgwuo34w" path="res://icon.svg" id="3_fec3m"]
 
 [node name="Root" type="Node2D"]
 position = Vector2(9, 9)
 
 [node name="Player" parent="." instance=ExtResource("1_6em0n")]
+gear_ratios = Array[float]([3.237, 2.104, 1.422, 1.0, 0.814, 0.622])
+final_drive = 3.73
+torque_levels = Array[float]([200.0, 275.0, 400.0, 450.0, 500.0, 525.0, 550.0, 575.0, 575.0, 575.0, 550.0, 525.0, 500.0, 475.0, 0.0])
+rev_limit = 7500
+max_engine_rpm = 7800
+curb_weight = 1692.0
+position = Vector2(319, 574)
 
 [node name="Hud" type="Node2D" parent="."]
 script = ExtResource("3_doene")
@@ -68,6 +74,3 @@ theme_override_colors/font_color = Color(0.839216, 0.866667, 1, 1)
 theme_override_font_sizes/font_size = 66
 text = "0"
 horizontal_alignment = 2
-
-[node name="Player2" type="Player" parent="."]
-texture = ExtResource("3_fec3m")
