@@ -81,3 +81,5 @@ position = Vector2(-111, 462)
 
 [node name="Camera2D" type="Camera2D" parent="Player"]
 position_smoothing_enabled = true
+
+[connection signal="metric_update" from="Player" to="CanvasLayer/Hud" method="_on_player_metric_update"]
