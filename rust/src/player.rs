@@ -13,7 +13,11 @@ struct Player {
 use crate::physics::{Car, GearShift};
 use crate::res_car::CarConfiguration;
 
+#[godot_api]
 impl Player {
+    #[signal]
+    fn metric_update(rpm: i32, gear: i32, speed: i32);
+
     fn reset_player(&mut self) {
         godot_print!("resetting player car"); // Prints to the Godot console
         let binding = self.config.bind();
@@ -50,6 +54,7 @@ impl INode2D for Player {
 
         let metrics = self.car.update(delta);
         let pos = metrics.velocity * delta as f32;
+        let speed = metrics.velocity * 3.6;
         godot_print!(
             "rpm: {} | torque: {} Nm | pow: {} KW",
             metrics.rpm,
@@ -60,9 +65,19 @@ impl INode2D for Player {
             "gear: {} | v: {} m/s | speed: {} km/h",
             metrics.gear,
             metrics.velocity,
-            metrics.velocity * 3.6,
+            speed,
         );
         godot_print!("pos.x: {}", pos);
-        self.base_mut().translate(Vector2::new(pos, 0.0))
+
+        let mut base = self.base_mut();
+        base.translate(Vector2::new(pos, 0.0));
+        base.emit_signal(
+            "metric_update".into(),
+            &[
+                Variant::from(metrics.rpm),
+                Variant::from(metrics.gear as i32),
+                Variant::from(speed as i32),
+            ],
+        );
     }
 }
