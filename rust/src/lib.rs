@@ -1,5 +1,6 @@
 mod physics;
 mod player;
+mod res_car;
 
 use godot::prelude::*;
 

@@ -1,0 +1,16 @@
+[gd_resource type="CarConfiguration" load_steps=2 format=3 uid="uid://dsn0ve182vwfa"]
+
+[ext_resource type="Curve" uid="uid://dv40lw1k8diai" path="res://mustang_torque.tres" id="1_lcrsi"]
+
+[resource]
+gear_ratios = Array[float]([3.237, 2.104, 1.422, 1.0, 0.814, 0.622])
+final_drive = 3.73
+torque_curve = ExtResource("1_lcrsi")
+peak_torque = 555.0
+idle_rpm = 800
+rev_limit = 7500
+shift_lag_seconds = 1.3
+curb_weight = 1692.0
+drag_coefficient = 0.562
+wheel = Vector3(235, 55, 17)
+wheel_roll_resistancve = 0.02
