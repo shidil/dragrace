@@ -1,4 +1,5 @@
-use godot::obj::WithBaseField;
+use godot::engine::Curve;
+use godot::obj::{NewGd, WithBaseField};
 use godot::{engine::Node2D, prelude::*};
 
 #[derive(GodotClass)]
@@ -11,7 +12,11 @@ struct Player {
     #[export]
     final_drive: f32,
     #[export]
-    torque_levels: Array<f32>,
+    torque_curve: Gd<Curve>,
+    #[export]
+    peak_torque: f32,
+    //#[export]
+    //torque_levels: Array<f32>,
     #[export]
     idle_rpm: i32,
     #[export]
@@ -30,10 +35,8 @@ struct Player {
     wheel_roll_resistancve: f32,
 }
 
-use godot::engine::INode2D;
-
 use crate::physics::{
-    Car, CarConfiguration, Wheel, DEFAULT_DRAG_COEFFICIENT, ROLL_RESISTANCE_ASPHALT,
+    Car, CarConfiguration, GearShift, Wheel, DEFAULT_DRAG_COEFFICIENT, ROLL_RESISTANCE_ASPHALT,
 };
 
 impl Player {
@@ -41,10 +44,6 @@ impl Player {
         let mut gear_ratios: Vec<f32> = vec![];
         for v in self.gear_ratios.iter_shared() {
             gear_ratios.push(v);
-        }
-        let mut torque_levels: Vec<f32> = vec![];
-        for v in self.torque_levels.iter_shared() {
-            torque_levels.push(v);
         }
 
         self.car = Car::new(CarConfiguration {
@@ -54,7 +53,8 @@ impl Player {
                 diameter: self.wheel.z,
                 rolling_resistance: self.wheel_roll_resistancve,
             },
-            torque_levels,
+            torque_curve: Some(self.torque_curve.to_owned()),
+            peak_torque: self.peak_torque,
             gear_ratios,
             final_drive: self.final_drive,
             shift_lag_seconds: self.shift_lag_seconds,
@@ -72,8 +72,7 @@ impl Player {
 impl INode2D for Player {
     fn init(base: Base<Node2D>) -> Self {
         godot_print!("Hello, world! ddd"); // Prints to the Godot console
-        let config = CarConfiguration::default();
-        let car = Car::new(config.clone());
+        let car = Car::new(CarConfiguration::default());
 
         Self {
             base,
@@ -85,7 +84,9 @@ impl INode2D for Player {
             },
             wheel_roll_resistancve: ROLL_RESISTANCE_ASPHALT,
             gear_ratios: Array::new(),
-            torque_levels: Array::new(),
+            torque_curve: Curve::new_gd(),
+            peak_torque: 500.0,
+            //torque_levels: Array::new(),
             final_drive: 4.0,
             idle_rpm: 800,
             rev_limit: 7000,
@@ -102,19 +103,29 @@ impl INode2D for Player {
 
     fn process(&mut self, delta: f64) {
         let input = Input::singleton();
-        if input.is_action_pressed("shift_up".into()) {
-            self.car.shift_up();
-        }
         if input.is_action_pressed("reset_game".into()) {
             self.reset_player();
+        }
+        if input.is_action_pressed("shift_up".into()) {
+            self.car.shift_gear(GearShift::ShiftUp);
+        }
+        if input.is_action_pressed("shift_down".into()) {
+            self.car.shift_gear(GearShift::SiftDown);
         }
 
         let metrics = self.car.update(delta);
         let pos = metrics.velocity * delta as f32;
         godot_print!(
-            "v m/s: {} kmph {}",
+            "rpm: {} | torque: {} Nm | pow: {} KW",
+            metrics.rpm,
+            metrics.torque,
+            metrics.power,
+        );
+        godot_print!(
+            "gear: {} | v: {} m/s | speed: {} km/h",
+            metrics.gear,
             metrics.velocity,
-            metrics.velocity * 3.6
+            metrics.velocity * 3.6,
         );
         godot_print!("pos.x: {}", pos);
         self.base_mut().translate(Vector2::new(pos, 0.0))

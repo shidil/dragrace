@@ -1,8 +1,11 @@
-[gd_scene load_steps=2 format=3 uid="uid://dh5lx2ocp83rm"]
+[gd_scene load_steps=3 format=3 uid="uid://dh5lx2ocp83rm"]
 
 [ext_resource type="Texture2D" uid="uid://dwk0yg12upqb1" path="res://mustang.png" id="2_gjixl"]
 
+[sub_resource type="Curve" id="Curve_b3fm5"]
+
 [node name="Car" type="Player"]
+torque_curve = SubResource("Curve_b3fm5")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 scale = Vector2(0.265583, 0.265583)

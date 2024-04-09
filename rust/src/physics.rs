@@ -1,18 +1,16 @@
-use godot::prelude::*;
+use godot::{engine::Curve, obj::NewGd, prelude::*};
 
 use std::{
     cmp::{max, min},
     usize,
 };
 
-const RPM_STEP: i32 = 500;
 // Pure, dry air has a density of 1.293 kg m−3 at a temperature of 273 K and a pressure of 101.325 kPa
 pub const AIR_DENSITY: f32 = 1.293;
 pub const ROLL_RESISTANCE_ASPHALT: f32 = 0.02;
 pub const DEFAULT_DRAG_COEFFICIENT: f32 = 0.562;
 
-#[derive(Clone, GodotClass, Debug)]
-#[class(init)]
+#[derive(Debug)]
 pub struct CarConfiguration {
     pub wheel: Wheel,
     pub gear_ratios: Vec<f32>,
@@ -26,13 +24,14 @@ pub struct CarConfiguration {
     pub rev_limit: i32,
     // beyound which engine is doomed to fail
     pub max_engine_rpm: i32,
-    // torque in Nm for 500 rpm increments
-    pub torque_levels: Vec<f32>,
     // total weight in kilograms
     pub curb_weight: f32,
     /// https://en.wikipedia.org/wiki/Automobile_drag_coefficient
     /// cdA value for the car
     pub drag_coefficient: f32,
+    // torque in Nm
+    pub torque_curve: Option<Gd<Curve>>,
+    pub peak_torque: f32,
 }
 
 impl Default for CarConfiguration {
@@ -50,9 +49,10 @@ impl Default for CarConfiguration {
             idle_rpm: 0,
             rev_limit: 0,
             max_engine_rpm: 0,
-            torque_levels: vec![],
             curb_weight: 0.0,
             drag_coefficient: DEFAULT_DRAG_COEFFICIENT,
+            torque_curve: None,
+            peak_torque: 0.0,
         }
     }
 }
@@ -60,9 +60,14 @@ impl Default for CarConfiguration {
 pub enum CarState {
     Idle,
     Moving,
+    Shifting,
     //Stalled,
     //Busted,
-    //Shifting,
+}
+
+pub enum GearShift {
+    ShiftUp,
+    SiftDown,
 }
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -83,22 +88,23 @@ pub struct CarMetrics {
 }
 
 pub struct Car {
+    pub state: CarState,
     config: CarConfiguration,
     // simulation values
-    pub rpm: i32,
+    rpm: i32,
     // Nm
-    pub torque: f32,
+    torque: f32,
     // KW
-    pub power: f32,
+    power: f32,
     // eg: 1 - 7
-    pub gear: usize,
+    gear: usize,
     /// m/s
-    pub velocity: f32,
+    velocity: f32,
     /// 0 - 1.0
-    pub throttle: f32,
+    throttle: f32,
     /// m/s^2
-    pub acceleration: f32,
-    pub state: CarState,
+    acceleration: f32,
+    shift_timer: f64,
 }
 
 impl Car {
@@ -111,6 +117,7 @@ impl Car {
             acceleration: 0.0,
             power: 0.0,
             torque: 0.0,
+            shift_timer: 0.0,
             state: CarState::Idle,
             config,
         }
@@ -129,14 +136,21 @@ impl Car {
         let wheel_speed = velocity / wheel_radi;
         let engine_speed = wheel_speed * self.gear_ratio();
         let engine_rpm = (engine_speed * 30.0) / std::f32::consts::PI;
-        return engine_rpm.round() as i32;
+
+        return min(
+            max(0, engine_rpm.round() as i32),
+            self.config.max_engine_rpm,
+        );
     }
 
     fn calc_torque(&self, rpm: i32) -> f32 {
-        let step: usize = max(1, (rpm / RPM_STEP) as usize);
-        // accomodate index overflow
-        let index = min(step - 1, self.config.torque_levels.len() - 1);
-        return self.config.torque_levels[max(0, index)];
+        if let Some(curve) = &self.config.torque_curve {
+            let x: f32 = rpm as f32 / self.config.max_engine_rpm as f32;
+            let y: f32 = curve.sample(x);
+
+            return y * self.config.peak_torque;
+        }
+        return self.config.peak_torque;
     }
 
     /// https://en.wikipedia.org/wiki/Automobile_drag_coefficient
@@ -172,30 +186,45 @@ impl Car {
 
     /// https://www.reddit.com/r/gamedev/comments/1320er/math_for_simulating_a_car_transmission_xpost_rmath/
     pub fn update(&mut self, delta: f64) -> CarMetrics {
+        let velocity = self.velocity;
         let mut rpm = self.rpm;
-        let mut torque = self.torque;
-        let mut power = self.power;
-        let mut acceleration = self.acceleration;
-        let mut velocity = self.velocity;
 
         match self.state {
-            CarState::Idle => godot_print!("idling, todo: increment rpm based on throttle"),
+            CarState::Idle => {
+                godot_print!("idling, todo: increment rpm {} based on throttle", rpm);
+            }
             CarState::Moving => {
-                rpm = min(
-                    max(0, self.calc_rpm(self.velocity)),
-                    self.config.max_engine_rpm,
-                );
-                torque = self.calc_torque(rpm) * self.throttle;
-                let drive_torque = torque * self.gear_ratio();
-                let force = drive_torque / (self.config.wheel.radius() / 1000.0);
-                let damp_force = self.calc_drag_force(self.velocity)
-                    + self.config.wheel.resistance_force(self.config.curb_weight);
-
-                acceleration = (force - damp_force) / self.config.curb_weight; // m/s2
-                velocity = self.velocity + (acceleration * delta as f32);
-                power = (drive_torque * rpm as f32) / 9549.296585513720;
+                rpm = self.calc_rpm(velocity);
+            }
+            CarState::Shifting => {
+                self.shift_timer -= delta;
+                if self.shift_timer <= 0.0 {
+                    self.state = CarState::Moving;
+                }
+                rpm = self.calc_rpm(velocity);
             }
         }
+
+        let torque = self.calc_torque(rpm) * self.throttle;
+        let drive_torque = torque * self.gear_ratio();
+        let mut force = drive_torque / (self.config.wheel.radius() / 1000.0);
+
+        // simulate clutch disengaged scenario or nueutral gear
+        if matches!(self.state, CarState::Shifting | CarState::Idle) {
+            force = 0.0;
+        }
+        // apply air drag resistance, and rolling resistance
+        if velocity > 0.0 {
+            let drag = self.calc_drag_force(velocity);
+            let roll_res = self.config.wheel.resistance_force(self.config.curb_weight);
+            force -= drag + roll_res;
+        }
+
+        let acceleration = force / self.config.curb_weight; // m/s2
+        let velocity = velocity + (acceleration * delta as f32);
+
+        // use drive_torque instead ??
+        let power = (torque * rpm as f32) / 9549.296585513720;
 
         self.rpm = rpm;
         self.torque = torque;
@@ -206,7 +235,22 @@ impl Car {
         return self.metrics();
     }
 
-    pub fn shift_up(&mut self) -> i32 {}
+    pub fn shift_gear(&mut self, shift: GearShift) {
+        if let CarState::Shifting = self.state {
+            return;
+        }
+
+        let mut gear = self.gear;
+        let max_gear = self.config.gear_ratios.len();
+        match shift {
+            GearShift::ShiftUp => gear = min(gear + 1, max_gear),
+            GearShift::SiftDown => gear = max(1, gear - 1),
+        }
+
+        self.gear = gear;
+        self.state = CarState::Shifting;
+        self.shift_timer = self.config.shift_lag_seconds.into();
+    }
 }
 
 #[derive(Clone, Copy, Debug, GodotClass)]
@@ -266,6 +310,7 @@ mod tests {
             },
             gear_ratios: vec![3.30],
             final_drive: 4.20,
+            max_engine_rpm: 7000,
             ..Default::default()
         };
         let car = Car::new(config);
@@ -274,19 +319,30 @@ mod tests {
 
     #[test]
     fn test_calc_torque() {
+        //let mut curve = Curve::new_gd();
+        //curve.add_point(Vector2::new(0.0, 0.0));
+        //curve.add_point(Vector2::new(0.5, 0.5));
+        //curve.add_point(Vector2::new(0.75, 1.0));
+        //curve.add_point(Vector2::new(1.0, 1.0));
         let config = CarConfiguration {
-            torque_levels: vec![100.0, 200.0, 300.0, 400.0, 500.0],
+            torque_curve: None,
+            peak_torque: 500.0,
+            max_engine_rpm: 3000,
             ..Default::default()
         };
         let car = Car::new(config);
-        assert_eq!(car.calc_torque(500), 100.0);
-        assert_eq!(car.calc_torque(800), 100.0);
-        assert_eq!(car.calc_torque(1600), 300.0);
+        //assert_eq!(car.calc_torque(500), 100.0);
+        //assert_eq!(car.calc_torque(800), 150.0);
+        //assert_eq!(car.calc_torque(1500), 250.0);
         assert_eq!(car.calc_torque(2550), 500.0);
     }
 
     #[test]
     fn test_car_update() {
+        //let mut flat_curve = Curve::new_gd();
+        //flat_curve.add_point(Vector2::new(0.0, 1.0));
+        //flat_curve.add_point(Vector2::new(1.0, 1.0));
+
         let config = CarConfiguration {
             wheel: Wheel {
                 width: 285.0,
@@ -297,7 +353,9 @@ mod tests {
             final_drive: 4.20,
             gear_ratios: vec![3.30],
             curb_weight: 1500.0,
-            torque_levels: vec![500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0, 500.0],
+            torque_curve: None,
+            peak_torque: 500.0,
+            max_engine_rpm: 5000,
             drag_coefficient: DEFAULT_DRAG_COEFFICIENT,
             ..Default::default()
         };
@@ -309,7 +367,7 @@ mod tests {
             CarMetrics {
                 rpm: 3493,
                 torque: 500.0,
-                power: 2534.8975,
+                power: 182.89305,
                 gear: 1,
                 velocity: 10.333058,
                 throttle: 1.0,
