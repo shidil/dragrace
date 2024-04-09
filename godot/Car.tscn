@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dh5lx2ocp83rm"]
 
-[ext_resource type="Texture2D" uid="uid://dwk0yg12upqb1" path="res://mustang.png" id="2_gjixl"]
+[ext_resource type="Texture2D" uid="uid://cdkkh878eewre" path="res://assets/mustang_small.png" id="1_yal76"]
 
 [sub_resource type="CarConfiguration" id="CarConfiguration_y5g42"]
 
@@ -8,7 +8,6 @@
 config = SubResource("CarConfiguration_y5g42")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(0.265583, 0.265583)
-texture = ExtResource("2_gjixl")
+texture = ExtResource("1_yal76")
 
 [node name="ShiftTimer" type="Timer" parent="."]
