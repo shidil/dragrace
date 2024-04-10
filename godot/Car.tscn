@@ -9,5 +9,3 @@ config = SubResource("CarConfiguration_y5g42")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture = ExtResource("1_yal76")
-
-[node name="ShiftTimer" type="Timer" parent="."]
