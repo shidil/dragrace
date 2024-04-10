@@ -56,7 +56,7 @@ pub enum CarState {
 
 pub enum GearShift {
     ShiftUp,
-    SiftDown,
+    ShiftDown,
 }
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -74,6 +74,7 @@ pub struct CarMetrics {
     pub throttle: f32,
     /// m/s^2
     pub acceleration: f32,
+    pub ideal_gear: usize,
 }
 
 pub struct Car {
@@ -87,6 +88,8 @@ pub struct Car {
     power: f32,
     // eg: 1 - 7
     gear: usize,
+    // gear maximizing torque for current speed and rpm
+    ideal_gear: usize,
     /// m/s
     velocity: f32,
     /// 0 - 1.0
@@ -102,6 +105,7 @@ impl Car {
             rpm: config.idle_rpm(),
             config,
             gear: 1,
+            ideal_gear: 1,
             velocity: 0.0,
             throttle: 0.0,
             acceleration: 0.0,
@@ -113,20 +117,36 @@ impl Car {
     }
 
     // effective gear ratio. gear_ratio * final_drive
-    fn effective_gear_ratio(&self) -> f32 {
-        let gear = self.config.gear_ratio(self.gear);
+    fn effective_gear_ratio(&self, gear: usize) -> f32 {
+        let gear_ratio = self.config.gear_ratio(gear);
         let final_drive = self.config.final_drive();
-        return gear * final_drive;
+        return gear_ratio * final_drive;
     }
 
     /// calculate engine rpm from car velocity
-    fn calc_rpm(&self, velocity: f32) -> i32 {
+    fn calc_rpm(&self, velocity: f32, gear: usize) -> i32 {
         let wheel_radi = self.config.wheel_radius();
         let wheel_speed = velocity / wheel_radi;
-        let engine_speed = wheel_speed * self.effective_gear_ratio();
+        let engine_speed = wheel_speed * self.effective_gear_ratio(gear);
         let engine_rpm = (engine_speed * 30.0) / std::f32::consts::PI;
 
         return min(max(0, engine_rpm.round() as i32), self.config.rev_limit());
+    }
+
+    fn calc_ideal_gear(&self) -> usize {
+        let mut max_torque = self.torque;
+        let mut ideal_gear = self.gear;
+
+        for gear in self.gear..=self.config.max_gear() {
+            let rpm = self.calc_rpm(self.velocity, gear);
+            let torque = self.config.torque(rpm);
+            if torque > max_torque {
+                max_torque = torque;
+                ideal_gear = gear;
+            }
+        }
+
+        return ideal_gear;
     }
 
     /// https://en.wikipedia.org/wiki/Automobile_drag_coefficient
@@ -147,6 +167,7 @@ impl Car {
             torque: self.torque,
             power: self.power,
             gear: self.gear,
+            ideal_gear: self.ideal_gear,
             velocity: self.velocity,
             throttle: self.throttle,
             acceleration: self.acceleration,
@@ -163,7 +184,7 @@ impl Car {
         if speed > 0.0 {
             self.state = CarState::Moving;
             self.velocity = speed;
-            self.rpm = self.calc_rpm(speed);
+            self.rpm = self.calc_rpm(speed, self.gear);
         }
     }
 
@@ -177,19 +198,19 @@ impl Car {
                 godot_print!("idling, todo: increment rpm {} based on throttle", rpm);
             }
             CarState::Moving => {
-                rpm = self.calc_rpm(velocity);
+                rpm = self.calc_rpm(velocity, self.gear);
             }
             CarState::Shifting => {
                 self.shift_timer -= delta;
                 if self.shift_timer <= 0.0 {
                     self.state = CarState::Moving;
                 }
-                rpm = self.calc_rpm(velocity);
+                rpm = self.calc_rpm(velocity, self.gear);
             }
         }
 
         let torque = self.config.torque(rpm) * self.throttle;
-        let drive_torque = torque * self.effective_gear_ratio();
+        let drive_torque = torque * self.effective_gear_ratio(self.gear);
         let mut force = drive_torque / (self.config.wheel_radius());
 
         // simulate clutch disengaged scenario or nueutral gear
@@ -214,6 +235,7 @@ impl Car {
         self.power = power;
         self.acceleration = acceleration;
         self.velocity = velocity;
+        self.ideal_gear = self.calc_ideal_gear();
 
         return self.metrics();
     }
@@ -227,7 +249,7 @@ impl Car {
         let max_gear = self.config.max_gear();
         match shift {
             GearShift::ShiftUp => gear = min(gear + 1, max_gear),
-            GearShift::SiftDown => gear = max(1, gear - 1),
+            GearShift::ShiftDown => gear = max(1, gear - 1),
         }
 
         self.gear = gear;

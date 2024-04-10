@@ -49,7 +49,7 @@ impl INode2D for Player {
             self.car.shift_gear(GearShift::ShiftUp);
         }
         if input.is_action_pressed("shift_down".into()) {
-            self.car.shift_gear(GearShift::SiftDown);
+            self.car.shift_gear(GearShift::ShiftDown);
         }
 
         let metrics = self.car.update(delta);

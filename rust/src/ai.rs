@@ -10,7 +10,7 @@ struct AIOpponent {
     base: Base<Node2D>,
 }
 
-use crate::physics::{Car, GearShift, Vehicle};
+use crate::physics::{Car, GearShift};
 use crate::res_car::CarConfiguration;
 
 #[godot_api]
@@ -43,14 +43,14 @@ impl INode2D for AIOpponent {
         let pos = metrics.velocity * delta as f32;
         let speed = metrics.velocity * 3.6;
 
+        if metrics.gear < metrics.ideal_gear {
+            self.car.shift_gear(GearShift::ShiftUp);
+        } else if metrics.gear > metrics.ideal_gear {
+            self.car.shift_gear(GearShift::ShiftDown);
+        }
+
         let mut base = self.base_mut();
         base.translate(Vector2::new(pos, 0.0));
-        drop(base);
-
-        let config = self.config.bind();
-        if (config.peak_torque() - metrics.torque) < 10.0 {
-            self.car.shift_gear(GearShift::ShiftUp);
-        }
 
         godot_print!(
             "opponnet# rpm: {} | torque: {} Nm | pow: {} KW",
