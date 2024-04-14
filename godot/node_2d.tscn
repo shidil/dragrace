@@ -1,10 +1,12 @@
-[gd_scene load_steps=6 format=3 uid="uid://kspnqav2os4e"]
+[gd_scene load_steps=8 format=3 uid="uid://kspnqav2os4e"]
 
 [ext_resource type="PackedScene" uid="uid://dh5lx2ocp83rm" path="res://Car.tscn" id="1_6em0n"]
 [ext_resource type="CarConfiguration" uid="uid://dsn0ve182vwfa" path="res://mustaing.tres" id="2_akaf7"]
 [ext_resource type="Texture2D" uid="uid://betjnw1f7ufw1" path="res://assets/city-parallax/6.png" id="2_osjcd"]
 [ext_resource type="Script" path="res://Hud.gd" id="3_doene"]
+[ext_resource type="Script" path="res://EngineAudio.gd" id="5_2ca51"]
 [ext_resource type="Texture2D" uid="uid://cdkkh878eewre" path="res://assets/mustang_small.png" id="5_rw3sa"]
+[ext_resource type="AudioStream" uid="uid://mtpe1bdp22k6" path="res://assets/engine-running.ogg" id="6_j16m3"]
 
 [node name="Root" type="Node2D"]
 position = Vector2(296, 171)
@@ -83,6 +85,14 @@ position = Vector2(-111, 462)
 [node name="Camera2D" type="Camera2D" parent="Player"]
 position_smoothing_enabled = true
 
+[node name="EngineAudio" type="Node" parent="Player"]
+script = ExtResource("5_2ca51")
+runningSound = ExtResource("6_j16m3")
+
+[node name="RunningAudio" type="AudioStreamPlayer2D" parent="Player/EngineAudio"]
+position = Vector2(296, 171)
+stream = ExtResource("6_j16m3")
+
 [node name="AIOpponent" type="AIOpponent" parent="."]
 config = ExtResource("2_akaf7")
 
@@ -91,3 +101,4 @@ position = Vector2(-111, 305)
 texture = ExtResource("5_rw3sa")
 
 [connection signal="metric_update" from="Player" to="CanvasLayer/Hud" method="_on_player_metric_update"]
+[connection signal="metric_update" from="Player" to="Player/EngineAudio" method="_on_player_metric_update"]
